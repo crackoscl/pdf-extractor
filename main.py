@@ -1,7 +1,7 @@
 import sys
 import pymupdf
-from PySide6.QtWidgets import QApplication, QMainWindow, QListWidget, QTextEdit, QHBoxLayout, QWidget, QFileDialog, QLabel, QMessageBox
-from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import QApplication, QMainWindow, QListWidget, QHBoxLayout, QWidget, QFileDialog, QLabel, QMessageBox
+from PySide6.QtGui import QPixmap, QImage
 from PySide6.QtCore import Qt
 import os
 
@@ -69,18 +69,16 @@ class MyWindow(QMainWindow):
             # Obtener número de página
             page_number = int(current_item.text().split()[1]) - 1
             page = self.pdf_document.load_page(page_number)  # Cargar la página
-            output_dir = 'temp'
-            os.makedirs(output_dir, exist_ok=True)
             pix = page.get_pixmap()  # Renderizar la página como imagen
-            img_path = f"{output_dir}/temp_page.png"
-            pix.save(img_path)  # Guardar imagen temporalmente
-            # Mostrar imagen en QLabel
-            self.pdf_label.setPixmap(QPixmap(img_path).scaled(900, 700, Qt.KeepAspectRatio,Qt.SmoothTransformation))
-            self.setFixedSize(700,750)
+            img = QImage(pix.samples, pix.width, pix.height,
+                         pix.stride, QImage.Format_RGB888)
+            self.pdf_label.setPixmap(QPixmap.fromImage(img).scaled(
+                900, 700, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.setFixedSize(700, 750)
 
     def guardar_pagina_pdf(self):
         current_item = self.list_widget.currentItem()
-        
+
         if not self.pdf_document:
             QMessageBox.warning(
                 self, "Error", "No se ha abierto ningún documento PDF.")
@@ -90,7 +88,6 @@ class MyWindow(QMainWindow):
             QMessageBox.warning(
                 self, "Error", "No se ha seleccionado ninguna página.")
             return
-
 
         try:
             page_number = int(current_item.text().split()[1]) - 1
@@ -145,7 +142,8 @@ class MyWindow(QMainWindow):
 
             num_pages = len(self.pdf_document)
             opciones = QFileDialog.Options()
-            archivo_guardado = QFileDialog.getExistingDirectory(caption="Selecione Carpeta",options=opciones)
+            archivo_guardado = QFileDialog.getExistingDirectory(
+                caption="Selecione Carpeta", options=opciones)
 
             for num in range(num_pages):
                 if archivo_guardado:
@@ -157,7 +155,8 @@ class MyWindow(QMainWindow):
                         self.pdf_document, from_page=num, to_page=num)
 
                     # Guarda el nuevo documento
-                    doc_nuevo.save(f"{archivo_guardado}/documento{num +1}.pdf")
+                    doc_nuevo.save(
+                        f"{archivo_guardado}/documento{num + 1}.pdf")
                     doc_nuevo.close()
 
                 else:
@@ -165,15 +164,13 @@ class MyWindow(QMainWindow):
                         self, "Error", "No se pudo guardar las páginas.")
 
             QMessageBox.information(
-                        self, "Éxito", "Páginas guardadas como PDF exitosamente.")
+                self, "Éxito", "Páginas guardadas como PDF exitosamente.")
         except pymupdf.EmptyFileError as e:
             QMessageBox.critical(self, "Error al guardar",
                                  f"Los archivos PDF están vacíos o corruptos: {e}")
         except Exception as e:
             QMessageBox.critical(self, "Error al guardar",
                                  f"Ocurrió un error al guardar la páginas: {e}")
-  
-        
 
 
 if __name__ == "__main__":
